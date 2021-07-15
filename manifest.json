@@ -1,0 +1,23 @@
+{
+    "background_color": "purple",
+    "description": "mark map",
+    "display": "standalone",
+    "icons": [
+      {
+        "src": "icon/fox-icon.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      }
+    ],
+    "name": "mark map app",
+    "short_name": "markmap",
+    "start_url": "./"
+  }
+
+  // <link rel="manifest" href="manifest.json">
+
+// display mode	description	Fallback display mode
+// fullscreen	The entire available display area is used and no user agent Chrome is displayed.	standalone
+// standalone	The application will look and feel like a stand-alone application. This can include the application with a different window, its own icon in the application launcher, and so on. In this mode, the user agent excludes UI elements for controlling navigation, but can also include other UI elements such as a status bar.	minimal-ui
+// minimal-ui	The application looks and feels like a standalone application, but will have a minimal set of UI elements to control navigation. The elements vary depending on the browser.	browser
+// browser
