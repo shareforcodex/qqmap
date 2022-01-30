@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>import labels</title>
+
+    <style>
+        #import_input {
+            width: 100%;
+            height: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <textarea type="text" name="label_input" id="import_input">
+    </textarea>
+    <br>
+    <button id="start_import_btn">start</button>
+
+    <script>
+        let startBtn = document.querySelector("#start_import_btn");
+        let labelsInput = document.querySelector("#import_input");
+
+        startBtn.addEventListener('click', () => {
+            console.log(labelsInput.value);
+            let importLabelsObject = JSON.parse(labelsInput.value);
+            console.log(importLabelsObject);
+            let exitedLabelsObject = getObjFromStorage('mapMarks');
+            console.log(exitedLabelsObject)
+            let combinedLabelsObject = { ...exitedLabelsObject, ...importLabelsObject };
+            setObjToStorage('mapMarks', combinedLabelsObject);
+            alert('done')
+        })
+
+
+
+        function getObjFromStorage(name) {
+            return JSON.parse(window.localStorage.getItem(name)) || {};
+        }
+
+        function setObjToStorage(name, obj) {
+            window.localStorage.setItem(name, JSON.stringify(obj));
+        }
+    </script>
+</body>
+
+</html>

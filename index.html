@@ -65,12 +65,13 @@
     <button id='showCurrent'></button>
 
     <div id='markDetail'>
-        <a href="https://test.sadyn.top/webpack/tmapdemo/dist/">tmap</a> <br>
+
         <input id='markPrefixInput' type="text"> <button id='toogleMarkModeButton'>tooggle</button>
         <div id='postionDisplay'> lat ,lng</div>
         <button id='hideDetail'>hide</button>
         <button id='deleteMark'>delete</button>
         <button id="exportButton">export</button>
+        <a href="./import.html"> import</a>
         <div id='arrowdiv'></div>
 
         <ul id='markDetailUl'>
@@ -93,7 +94,7 @@
         const TEXTMARKCOLOR = '#111111';
     </script>
 
-    <script src="./preload_labels.js"></script>
+
 
     <script>
         const labelsNameInStorage = 'mapMarks';
@@ -236,13 +237,11 @@
                 for (const i of Object.values(labelsInStorage)) {
                     drawLabel(i)
                 }
-                for (const i of Object.values(remoteLabels)) {
-                    drawLabel(i, 20, '#0000ff');
-                }
 
 
 
-                status.labels = { ...labelsInStorage, ...remoteLabels };
+
+                status.labels = { ...labelsInStorage };
             },
             deleteLabel: function (id) {
                 console.log(status.labels)
@@ -297,7 +296,7 @@
                     pitch: 0, //设置俯仰角度（0~45）
                     zoom: 18, //设置地图缩放级别
                     center: qqMapCenter, //设置地图中心点坐标
-                    viewMode: "3D",
+                    viewMode: "2D",
                     mapStyleId: 'style2'
                 });
                 qqMap.setDoubleClickZoom(false)
@@ -418,7 +417,10 @@
         })
         showCurrentButton.addEventListener('pointerdown', () => {
             console.log('center map now')
-            setCenter(qqMap, currentGcjLatLng.lat, currentGcjLatLng.lng)
+            setCenter(qqMap, currentGcjLatLng.lat, currentGcjLatLng.lng);
+            qqMap.setRotation(0)
+            qqMap.setPitch(0)
+            qqMap.setZoom(17)
         })
 
         exportButton.addEventListener('click', () => {
