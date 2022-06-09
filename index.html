@@ -221,7 +221,7 @@
                                                 newMap.currentLatLng.lat +
                                                 "_" +
                                                 newMap.currentLatLng.lng,
-                                          name: "↑",
+                                          name: "⧋",
                                           detail: "current location",
                                           lat: newMap.currentLatLng.lat,
                                           lng: newMap.currentLatLng.lng,
@@ -377,7 +377,9 @@
                                           lng: coords.longitude,
                                     },
                               });
-                              status.initLabels();
+                              setTimeout(() => {
+                                    status.initLabels();
+                              }, 5000);
 
                               //监听点击事件添加marker
 
