@@ -94,7 +94,7 @@ markDetailUl.style.display = "none";
 
 //          < !--model -->
 
-let status = {
+let model = {
   map: {
     rotation: 0,
     zoom: 18,
@@ -105,7 +105,7 @@ let status = {
 
   updateMap: function (newMap) {
     console.log("updateMap");
-    let map = status.map;
+    let map = model.map;
     if (map.rotation !== newMap.rotation) {
     }
     if (map.zoom !== newMap.zoom) {
@@ -114,11 +114,11 @@ let status = {
     }
     if (
       newMap.currentLatLng !==
-      status.map.currentLatLng
+      model.map.currentLatLng
     ) {
       console.log(
         "differ loc",
-        status.map.currentLatLng,
+        model.map.currentLatLng,
         newMap.currentLatLng
       );
       let label = {
@@ -151,18 +151,18 @@ let status = {
       ]);
     }
 
-    status.map = newMap;
+    model.map = newMap;
   },
 
   updateLabel: function (newLabel) {
     console.log(
       "before updateLabel",
-      status.labels,
+      model.labels,
       newLabel
     );
-    if (status.labels[newLabel.id]) {
+    if (model.labels[newLabel.id]) {
       if (
-        status.labels[newLabel.id].id ===
+        model.labels[newLabel.id].id ===
         newLabel.id
       ) {
         console.log(
@@ -170,8 +170,8 @@ let status = {
         );
       }
     }
-    status.labels[newLabel.id] = newLabel;
-    console.log(status.labels);
+    model.labels[newLabel.id] = newLabel;
+    console.log(model.labels);
     updateLabelInStrogeLabel(
       labelsNameInStorage,
       newLabel
@@ -185,15 +185,15 @@ let status = {
       drawLabel(i);
     }
 
-    status.labels = { ...labelsInStorage };
+    model.labels = { ...labelsInStorage };
   },
   deleteLabel: function (id) {
-    console.log(status.labels);
-    delete status.labels[id];
-    console.log(status.labels);
+    console.log(model.labels);
+    delete model.labels[id];
+    console.log(model.labels);
     setObjToStorage(
       labelsNameInStorage,
-      status.labels
+      model.labels
     );
     selectedLabel = null;
   },
@@ -262,22 +262,22 @@ lng: 121.47822413398089
 
     labelIdInput.value = selectedMarkID;
     labelNameInput.value =
-      status.labels[selectedMarkID]["name"];
+      model.labels[selectedMarkID]["name"];
     labelDetailInput.value =
-      status.labels[selectedMarkID][
+      model.labels[selectedMarkID][
       "detail"
       ];
   });
 
-  status.updateMap({
-    ...status.map,
+  model.updateMap({
+    ...model.map,
     currentLatLng: {
       lat: coords.lat,
       lng: coords.lng,
     },
   });
   // setTimeout(() => {
-  //   status.initLabels();
+  //   model.initLabels();
   // }, 5000);
 
   //监听点击事件添加marker
@@ -317,7 +317,7 @@ lng: 121.47822413398089
       lat: coords.lat,
       lng: coords.lng,
     };
-    status.updateLabel(targetLabel);
+    model.updateLabel(targetLabel);
   });
 
   navigator.geolocation.watchPosition(
@@ -339,8 +339,8 @@ lng: 121.47822413398089
         coords.longitude.toFixed(6);
 
       console.log("location changed");
-      status.updateMap({
-        ...status.map,
+      model.updateMap({
+        ...model.map,
         currentLatLng: {
           lat: coords.latitude,
           lng: coords.longitude,
@@ -367,7 +367,7 @@ hideButton.addEventListener("click", (evt) => {
 });
 
 deleteMarkButton.addEventListener("click", (e) => {
-  status.deleteLabel(selectedLabel.id);
+  model.deleteLabel(selectedLabel.id);
 });
 
 document
@@ -383,7 +383,7 @@ document
       name: labelNameInput.value,
       detail: labelDetailInput.value,
     };
-    status.updateLabel(newLabel);
+    model.updateLabel(newLabel);
   });
 
 document
@@ -479,8 +479,8 @@ function drawLabel(label, size, color, isgcj = true) {
   //     let latLng = gcj2wgs(glatLng.lat, glatLng.lng)
 
   //     labelIdInput.value = selectedMarkID;
-  //     labelNameInput.value = status.labels[selectedMarkID]['name'];
-  //     labelDetailInput.value = status.labels[selectedMarkID]['detail'];
+  //     labelNameInput.value = model.labels[selectedMarkID]['name'];
+  //     labelDetailInput.value = model.labels[selectedMarkID]['detail'];
 
   // })
 
@@ -488,12 +488,13 @@ function drawLabel(label, size, color, isgcj = true) {
 }
 
 function drawLabels(range) {
-  let labels = getObjFromStorage(labelsNameInStorage);
-  for (let label in labels) {
-    if (labels.hasOwnProperty(label)) {
-      if (labels[label].lat > range.minLat && labels[label].lat < range.maxLat) {
-        if (labels[label].lng > range.minLng && labels[label].lng < range.maxLng) {
-          drawLabel(labels[label], labels[label].size, labels[label].color);
+  model.labels = getObjFromStorage(labelsNameInStorage);
+  multiLabelsLayer.setGeometries([]);
+  for (let label in model.labels) {
+    if (model.labels.hasOwnProperty(label)) {
+      if (model.labels[label].lat > range.minLat && model.labels[label].lat < range.maxLat) {
+        if (model.labels[label].lng > range.minLng && model.labels[label].lng < range.maxLng) {
+          drawLabel(model.labels[label], model.labels[label].size, model.labels[label].color);
         }
       }
     }
