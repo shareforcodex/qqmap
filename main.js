@@ -20,6 +20,8 @@ const locationRefreshRateTime = 2000;
 
 let qqMap;
 let currentDirection = 0;
+let pickedCoords = {};
+
 
 let multiLabelsLayer = new TMap.MultiLabel({
   id: "normal-textlabel-layer",
@@ -282,25 +284,16 @@ lng: 121.47822413398089
 
   //监听点击事件添加marker
 
-  qqMap.on("click", (evt) => {
-
-
+  qqMap.on("dblclick", (evt) => {
+    console.log("dblclick", evt);
+    
     let gcjCoords = evt.latLng;
-    let coords = gcj2wgs(
+    pickedCoords = gcj2wgs(
       gcjCoords.lat,
       gcjCoords.lng
     );
-    console.log(coords);
+    console.log(pickedCoords);
 
-    if (markPrefixInput.value.length < 1) {
-      drawLabels({
-        minLat: coords.lat - 0.002,
-        minLng: coords.lng - 0.002,
-        maxLat: coords.lat + 0.002,
-        maxLng: coords.lng + 0.002,
-      })
-      return;
-    }
     let name = prompt("location title");
     if (name.length < 1) {
       return;
@@ -309,15 +302,39 @@ lng: 121.47822413398089
     let targetLabel = {
       id:
         "label_" +
-        coords.lat +
+        pickedCoords.lat +
         "_" +
-        coords.lng,
+        pickedCoords.lng,
       name: name,
       detail: markPrefixInput.value,
-      lat: coords.lat,
-      lng: coords.lng,
+      lat: pickedCoords.lat,
+      lng: pickedCoords.lng,
     };
     model.updateLabel(targetLabel);
+  }
+  );
+
+  qqMap.on("click", (evt) => {
+
+
+    let gcjCoords = evt.latLng;
+    pickedCoords = gcj2wgs(
+      gcjCoords.lat,
+      gcjCoords.lng
+    );
+    console.log(pickedCoords);
+
+    drawLabels({
+      minLat: pickedCoords.lat - 0.002,
+      minLng: pickedCoords.lng - 0.002,
+      maxLat: pickedCoords.lat + 0.002,
+      maxLng: pickedCoords.lng + 0.002,
+    })
+    // if (markPrefixInput.value.length < 1) {
+
+    //   return;
+    // }
+
   });
 
   navigator.geolocation.watchPosition(
@@ -368,6 +385,12 @@ hideButton.addEventListener("click", (evt) => {
 
 deleteMarkButton.addEventListener("click", (e) => {
   model.deleteLabel(selectedLabel.id);
+  drawLabels({
+    minLat: pickedCoords.lat - 0.002,
+    minLng: pickedCoords.lng - 0.002,
+    maxLat: pickedCoords.lat + 0.002,
+    maxLng: pickedCoords.lng + 0.002,
+  })
 });
 
 document
