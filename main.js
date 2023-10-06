@@ -23,36 +23,10 @@ let currentDirection = 0;
 let pickedCoords = {};
 
 
-let multiLabelsLayer = new TMap.MultiLabel({
-  id: "normal-textlabel-layer",
-  map: null,
-  styles: {
-    label: new TMap.LabelStyle({
-      color: TEXTMARKCOLOR, //颜色属性
-      size: TEXTMARKSIZE, //文字大小属性
-      offset: { x: 0, y: 0 }, //文字偏移属性单位为像素
-      angle: 0, //文字旋转属性
-      alignment: "left", //文字水平对齐属性
-      verticalAlignment: "top", //文字垂直对齐属性
-    }),
-  },
-  geometries: [],
-});
-let currentLocationLayer = new TMap.MultiLabel({
-  id: "current-location-mark-layer",
-  map: null,
-  styles: {
-    blue: new TMap.LabelStyle({
-      color: "#0000ff", //颜色属性
-      size: TEXTMARKSIZE * 4, //文字大小属性
-      offset: { x: 0, y: 0 }, //文字偏移属性单位为像素
-      angle: 0, //文字旋转属性
-      alignment: "center", //文字水平对齐属性
-      verticalAlignment: "middle", //文字垂直对齐属性
-    }),
-  },
-  geometries: [],
-});
+let multiLabelsLayer = null;
+let currentLocationLayer = null;
+
+
 window.addEventListener(
   "deviceorientationabsolute",
   (e) => {
@@ -201,183 +175,6 @@ let model = {
   },
 };
 
-
-// <!--main logical function -->
-
-function initMap() {
-  console.log("start initMap");
-
-  /*  console.log(pos)
-coords: GeolocationCoordinates
-latitude: 31.230416
-longitude: 121.473701
-accuracy: 150
-altitude: null
-altitudeAccuracy: null
-heading: null
-speed: null
-__proto__: GeolocationCoordinates
-timestamp: 1620128266841 */
-  let coords = DEFAULT_COORDS
-  let gcjCoords = wgs2gcj(
-    coords.lat,
-    coords.lng
-  );
-
-  currentGcjLatLng = gcjCoords;
-  /*console.log(gcjCoords)
-{
-lat: 31.228473709359033
-lng: 121.47822413398089
-}*/
-  let qqMapCenter = new TMap.LatLng(
-    gcjCoords.lat,
-    gcjCoords.lng
-  );
-  /*console.log(qqMapCenter)
-height: 0
-lat: 31.228473709359033
-lng: 121.47822413398089
-*/
-  //初始化地图
-  qqMap = new TMap.Map("container", {
-    rotation: 0, //设置地图旋转角度
-    pitch: 0, //设置俯仰角度（0~45）
-    zoom: 18, //设置地图缩放级别
-    center: qqMapCenter, //设置地图中心点坐标
-    viewMode: "2D",
-    mapStyleId: "style2",
-  });
-  qqMap.setDoubleClickZoom(false);
-  multiLabelsLayer.setMap(qqMap);
-  currentLocationLayer.setMap(qqMap);
-  multiLabelsLayer.on("click", (evt) => {
-    console.log("lable clicked", evt);
-    markDetailUl.style.display = "inherit";
-    selectedLabel = evt.geometry;
-    selectedMarkID = selectedLabel.id;
-    let glatLng = evt.latLng;
-    let latLng = gcj2wgs(
-      glatLng.lat,
-      glatLng.lng
-    );
-
-    labelIdInput.value = selectedMarkID;
-    labelNameInput.value =
-      model.labels[selectedMarkID]["name"];
-    labelDetailInput.value =
-      model.labels[selectedMarkID][
-      "detail"
-      ];
-  });
-
-  model.updateMap({
-    ...model.map,
-    currentLatLng: {
-      lat: coords.lat,
-      lng: coords.lng,
-    },
-  });
-  // setTimeout(() => {
-  //   model.initLabels();
-  // }, 5000);
-
-  //监听点击事件添加marker
-
-  qqMap.on("dblclick", (evt) => {
-    console.log("dblclick", evt);
-    
-    let gcjCoords = evt.latLng;
-    pickedCoords = gcj2wgs(
-      gcjCoords.lat,
-      gcjCoords.lng
-    );
-    console.log(pickedCoords);
-
-    let name = prompt("location title");
-    if (name.length < 1) {
-      return;
-    }
-
-    let targetLabel = {
-      id:
-        "label_" +
-        pickedCoords.lat +
-        "_" +
-        pickedCoords.lng,
-      name: name,
-      detail: markPrefixInput.value,
-      lat: pickedCoords.lat,
-      lng: pickedCoords.lng,
-    };
-    model.updateLabel(targetLabel);
-  }
-  );
-
-  qqMap.on("click", (evt) => {
-
-
-    let gcjCoords = evt.latLng;
-    pickedCoords = gcj2wgs(
-      gcjCoords.lat,
-      gcjCoords.lng
-    );
-    console.log(pickedCoords);
-
-    drawLabels({
-      minLat: pickedCoords.lat - 0.002,
-      minLng: pickedCoords.lng - 0.002,
-      maxLat: pickedCoords.lat + 0.002,
-      maxLng: pickedCoords.lng + 0.002,
-    })
-    // if (markPrefixInput.value.length < 1) {
-
-    //   return;
-    // }
-
-  });
-
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      console.log(
-        "locatin changed to",
-        pos.coords
-      );
-      var coords = pos.coords;
-      let gcjCoords = wgs2gcj(
-        coords.latitude,
-        coords.longitude
-      );
-      currentGcjLatLng = gcjCoords;
-      postionDisplay.innerHTML =
-        "" +
-        coords.latitude.toFixed(6) +
-        "," +
-        coords.longitude.toFixed(6);
-
-      console.log("location changed");
-      model.updateMap({
-        ...model.map,
-        currentLatLng: {
-          lat: coords.latitude,
-          lng: coords.longitude,
-        },
-      });
-    },
-    error,
-    options
-  );
-
-}
-function error(err) {
-  postionDisplay.innerHTML = "cant get location info";
-  console.warn(`ERROR(${err.code}): ${err.message}`);
-}
-
-
-// <!--execute main function and additional appfunction-- >
-
-initMap();
 
 hideButton.addEventListener("click", (evt) => {
   markDetailUl.style.display = "none";
@@ -545,3 +342,224 @@ function updateLabelInStrogeLabel(name, label) {
   setObjToStorage(name, labels);
 }
 
+function error(err) {
+  postionDisplay.innerHTML = "cant get location info";
+  console.warn(`ERROR(${err.code}): ${err.message}`);
+}
+
+
+
+
+
+function initMap() {
+  console.log("start initMap");
+
+  /*  console.log(pos)
+coords: GeolocationCoordinates
+latitude: 31.230416
+longitude: 121.473701
+accuracy: 150
+altitude: null
+altitudeAccuracy: null
+heading: null
+speed: null
+__proto__: GeolocationCoordinates
+timestamp: 1620128266841 */
+  let coords = DEFAULT_COORDS
+  let gcjCoords = wgs2gcj(
+    coords.lat,
+    coords.lng
+  );
+
+  currentGcjLatLng = gcjCoords;
+  /*console.log(gcjCoords)
+{
+lat: 31.228473709359033
+lng: 121.47822413398089
+}*/
+  let qqMapCenter = new TMap.LatLng(
+    gcjCoords.lat,
+    gcjCoords.lng
+  );
+  /*console.log(qqMapCenter)
+height: 0
+lat: 31.228473709359033
+lng: 121.47822413398089
+*/
+  // //初始化地图
+  // qqMap = new TMap.Map("container", {
+  //   rotation: 0, //设置地图旋转角度
+  //   pitch: 0, //设置俯仰角度（0~45）
+  //   zoom: 18, //设置地图缩放级别
+  //   center: qqMapCenter, //设置地图中心点坐标
+  //   viewMode: "2D",
+  //   mapStyleId: "style2",
+  // });
+
+  qqMap = new TMap.Map('container', {
+    zoom: 17, // 设置地图缩放
+    center: new TMap.LatLng(39.98210863924864, 116.31310899739151), // 设置地图中心点坐标，
+    pitch: 0, // 俯仰度
+    rotation: 0, // 旋转角度
+  });
+
+
+
+  //todo
+  qqMap.setDoubleClickZoom(false);
+
+
+   multiLabelsLayer = new TMap.MultiLabel({
+    id: "normal-textlabel-layer",
+    map: qqMap,
+    styles: {
+      label: new TMap.LabelStyle({
+        color: TEXTMARKCOLOR, //颜色属性
+        size: TEXTMARKSIZE, //文字大小属性
+        offset: { x: 0, y: 0 }, //文字偏移属性单位为像素
+        angle: 0, //文字旋转属性
+        alignment: "left", //文字水平对齐属性
+        verticalAlignment: "top", //文字垂直对齐属性
+      }),
+    },
+    geometries: [],
+  });
+   currentLocationLayer = new TMap.MultiLabel({
+    id: "current-location-mark-layer",
+    map: qqMap,
+    styles: {
+      blue: new TMap.LabelStyle({
+        color: "#0000ff", //颜色属性
+        size: TEXTMARKSIZE * 4, //文字大小属性
+        offset: { x: 0, y: 0 }, //文字偏移属性单位为像素
+        angle: 0, //文字旋转属性
+        alignment: "center", //文字水平对齐属性
+        verticalAlignment: "middle", //文字垂直对齐属性
+      }),
+    },
+    geometries: [],
+  });
+
+  multiLabelsLayer.setMap(qqMap);
+  currentLocationLayer.setMap(qqMap);
+  multiLabelsLayer.on("click", (evt) => {
+    console.log("lable clicked", evt);
+    markDetailUl.style.display = "inherit";
+    selectedLabel = evt.geometry;
+    selectedMarkID = selectedLabel.id;
+    let glatLng = evt.latLng;
+    let latLng = gcj2wgs(
+      glatLng.lat,
+      glatLng.lng
+    );
+
+    labelIdInput.value = selectedMarkID;
+    labelNameInput.value =
+      model.labels[selectedMarkID]["name"];
+    labelDetailInput.value =
+      model.labels[selectedMarkID][
+      "detail"
+      ];
+  });
+
+  model.updateMap({
+    ...model.map,
+    currentLatLng: {
+      lat: coords.lat,
+      lng: coords.lng,
+    },
+  });
+  // setTimeout(() => {
+  //   model.initLabels();
+  // }, 5000);
+
+  //监听点击事件添加marker
+
+  qqMap.on("dblclick", (evt) => {
+    console.log("dblclick", evt);
+
+    let gcjCoords = evt.latLng;
+    pickedCoords = gcj2wgs(
+      gcjCoords.lat,
+      gcjCoords.lng
+    );
+    console.log(pickedCoords);
+
+    let name = prompt("location title");
+    if (name.length < 1) {
+      return;
+    }
+
+    let targetLabel = {
+      id:
+        "label_" +
+        pickedCoords.lat +
+        "_" +
+        pickedCoords.lng,
+      name: name,
+      detail: markPrefixInput.value,
+      lat: pickedCoords.lat,
+      lng: pickedCoords.lng,
+    };
+    model.updateLabel(targetLabel);
+  }
+  );
+
+  qqMap.on("click", (evt) => {
+
+
+    let gcjCoords = evt.latLng;
+    pickedCoords = gcj2wgs(
+      gcjCoords.lat,
+      gcjCoords.lng
+    );
+    console.log(pickedCoords);
+
+    drawLabels({
+      minLat: pickedCoords.lat - 0.002,
+      minLng: pickedCoords.lng - 0.002,
+      maxLat: pickedCoords.lat + 0.002,
+      maxLng: pickedCoords.lng + 0.002,
+    })
+    // if (markPrefixInput.value.length < 1) {
+
+    //   return;
+    // }
+
+  });
+
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      console.log(
+        "locatin changed to",
+        pos.coords
+      );
+      var coords = pos.coords;
+      let gcjCoords = wgs2gcj(
+        coords.latitude,
+        coords.longitude
+      );
+      currentGcjLatLng = gcjCoords;
+      postionDisplay.innerHTML =
+        "" +
+        coords.latitude.toFixed(6) +
+        "," +
+        coords.longitude.toFixed(6);
+
+      console.log("location changed");
+      model.updateMap({
+        ...model.map,
+        currentLatLng: {
+          lat: coords.latitude,
+          lng: coords.longitude,
+        },
+      });
+    },
+    error,
+    options
+  );
+
+}
+
+
+initMap();
