@@ -27,25 +27,52 @@ let multiLabelsLayer = null;
 let currentLocationLayer = null;
 
 
-window.addEventListener(
-  "deviceorientationabsolute",
-  (e) => {
-    currentDirection = Math.round(e.alpha);
-    arrowdiv.style.transform = `rotate(${-currentDirection + 270
-      }deg)`;
+// Motion/orientation handling for iOS Safari and others
+function handleOrientation(event) {
+  const heading = typeof event.webkitCompassHeading === "number"
+    ? event.webkitCompassHeading
+    : (typeof event.alpha === "number" ? Math.abs(event.alpha - 360) : 0);
+  currentDirection = Math.round(heading);
+  if (typeof arrowdiv !== "undefined" && arrowdiv) {
+    arrowdiv.style.transform = `rotate(${-currentDirection + 270}deg)`;
+  }
+  if (currentLocationLayer && typeof TMap !== "undefined") {
     currentLocationLayer.setStyles({
       blue: new TMap.LabelStyle({
-        color: "#0000ff", //颜色属性
-        size: TEXTMARKSIZE * 3, //文字大小属性
-        offset: { x: 0, y: 0 }, //文字偏移属性单位为像素
-        angle: currentDirection, //文字旋转属性
-        alignment: "center", //文字水平对齐属性
-        verticalAlignment: "middle", //文字垂直对齐属性
+        color: "#0000ff",
+        size: TEXTMARKSIZE * 3,
+        offset: { x: 0, y: 0 },
+        angle: currentDirection,
+        alignment: "center",
+        verticalAlignment: "middle",
       }),
     });
-  },
-  true
-);
+  }
+}
+
+function addOrientationListenersAfterPermission() {
+  // Prefer absolute when available; fallback to deviceorientation
+  if ("ondeviceorientationabsolute" in window) {
+    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+  } else {
+    window.addEventListener("deviceorientation", handleOrientation, true);
+  }
+}
+
+function requestIOSMotionPermissionIfNeeded() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const DeviceOrientation = window.DeviceOrientationEvent;
+  if (isIOS && DeviceOrientation && typeof DeviceOrientation.requestPermission === "function") {
+    return DeviceOrientation.requestPermission().then((state) => {
+      if (state === "granted") addOrientationListenersAfterPermission();
+      return state;
+    }).catch(() => "denied");
+  } else {
+    // Non-iOS or no permission API; just add listeners
+    addOrientationListenersAfterPermission();
+    return Promise.resolve("granted");
+  }
+}
 
 
 let currentLocLabel;
@@ -62,6 +89,7 @@ let markDetailDisplay = document.querySelector("#markDetail");
 let markDetailUl = document.querySelector("#markDetailUl");
 let showCurrentButton =
   document.querySelector("#showCurrent");
+let enableSensorsButton = document.querySelector("#enableSensors");
 let hideButton = document.querySelector("#hideDetail");
 
 let selectedMarkID = "";
@@ -217,6 +245,10 @@ document
   });
 showCurrentButton.addEventListener("pointerdown", () => {
   console.log("center map now");
+  // Trigger a one-shot getCurrentPosition to prompt iOS permission if not yet granted
+  try {
+    navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, timeout: 5000 });
+  } catch (_) {}
   setCenter(
     qqMap,
     currentGcjLatLng.lat,
@@ -226,6 +258,16 @@ showCurrentButton.addEventListener("pointerdown", () => {
   qqMap.setPitch(0);
   qqMap.setZoom(17);
 });
+
+if (enableSensorsButton) {
+  enableSensorsButton.addEventListener("click", () => {
+    requestIOSMotionPermissionIfNeeded().then((state) => {
+      if (state !== "granted") {
+        alert("Please allow Motion & Orientation access in Safari Settings > Website Settings.");
+      }
+    });
+  });
+}
 
 exportButton.addEventListener("click", () => {
   console.log("export json");
@@ -559,7 +601,10 @@ lng: 121.47822413398089
     options
   );
 
+  // Try to add orientation listeners immediately (non-iOS), and let iOS click button to enable
+  addOrientationListenersAfterPermission();
 }
 
 
+// iOS requires user gesture to enable motion. Show helper button and init map immediately.
 initMap();
