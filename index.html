@@ -12,11 +12,27 @@
       
 
       <style type="text/css">
+            :root {
+                  --panel-bg: rgba(255, 255, 255, 0.7);
+                  --panel-border: rgba(0, 0, 0, 0.08);
+                  --text: #111;
+                  --muted: #666;
+                  --primary: #2563eb;
+                  --primary-contrast: #fff;
+                  --danger: #dc2626;
+                  --radius: 12px;
+                  --shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            }
+
             html,
             body {
                   height: 100%;
-                  margin: 0px;
-                  padding: 0px;
+                  margin: 0;
+                  padding: 0;
+                  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+                  color: var(--text);
+                  -webkit-font-smoothing: antialiased;
+                  -moz-osx-font-smoothing: grayscale;
             }
 
             #container {
@@ -24,13 +40,79 @@
                   height: 100%;
             }
 
-            #markDetail {
+            /* Modern top-right control panel */
+            #markDetail.control-panel {
                   position: fixed;
-                  right: 0;
-                  top: 0;
+                  top: 12px;
+                  right: 12px;
                   z-index: 9999;
-                  background-color: cyan;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 10px;
+                  padding: 12px;
+                  background: var(--panel-bg);
+                  border: 1px solid var(--panel-border);
+                  border-radius: var(--radius);
+                  box-shadow: var(--shadow);
+                  backdrop-filter: blur(10px);
+                  -webkit-backdrop-filter: blur(10px);
+                  max-width: min(92vw, 360px);
             }
+
+            .panel-row {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  flex-wrap: wrap;
+            }
+
+            .input {
+                  flex: 1 1 auto;
+                  min-width: 120px;
+                  padding: 8px 10px;
+                  border-radius: 10px;
+                  border: 1px solid var(--panel-border);
+                  background: rgba(255, 255, 255, 0.9);
+                  outline: none;
+            }
+            .input:focus { border-color: #c3dafe; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+
+            .btn {
+                  padding: 8px 12px;
+                  border-radius: 10px;
+                  border: 1px solid var(--panel-border);
+                  background: #fff;
+                  color: var(--text);
+                  cursor: pointer;
+                  transition: transform 0.06s ease, background 0.2s ease, box-shadow 0.2s ease;
+            }
+            .btn:hover { background: #f8fafc; }
+            .btn:active { transform: translateY(1px); }
+            .btn.primary { background: var(--primary); color: var(--primary-contrast); border-color: transparent; }
+            .btn.primary:hover { filter: brightness(0.95); }
+            .btn.secondary { background: #f3f4f6; }
+            .btn.danger { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
+
+            .icon-btn { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; cursor: pointer; }
+
+            .pill {
+                  padding: 6px 10px;
+                  border-radius: 999px;
+                  background: #f3f4f6;
+                  color: var(--muted);
+                  font-size: 12px;
+            }
+
+            .details {
+                  list-style: none;
+                  padding: 8px;
+                  margin: 4px 0 0 0;
+                  border-radius: 10px;
+                  background: rgba(255, 255, 255, 0.85);
+                  border: 1px solid var(--panel-border);
+            }
+            .details li { margin-bottom: 8px; }
+            .details input, .details textarea { width: 100%; box-sizing: border-box; }
 
             #showCurrent {
                   position: fixed;
@@ -64,28 +146,35 @@
 <body>
       <button id="showCurrent"></button>
 
-      <div id="markDetail">
-            <input id="markPrefixInput" type="text" />
-            <button id="toogleMarkModeButton">tooggle</button>
-            <div id="postionDisplay">lat ,lng</div>
-            <button id="hideDetail">hide</button>
-            <button id="deleteMark">delete</button>
-            <button id="exportButton">export</button>
-            <a href="./import.html"> import</a>
-            <div id="arrowdiv"></div>
+      <div id="markDetail" class="control-panel">
+            <div class="panel-row">
+                  <input id="markPrefixInput" class="input" type="text" placeholder="Mark prefix" />
+                  <button id="toogleMarkModeButton" class="btn" title="Toggle mark mode">Mark</button>
+                  <button id="enableSensors" class="btn" title="Enable compass">Compass</button>
+            </div>
+            <div class="panel-row">
+                  <div id="postionDisplay" class="pill">lat ,lng</div>
+                  <button id="hideDetail" class="icon-btn" title="Toggle details">Details</button>
+            </div>
+            <div class="panel-row">
+                  <button id="exportButton" class="btn primary" title="Export labels">Export</button>
+                  <a href="./import.html" class="btn secondary" title="Import labels">Import</a>
+                  <button id="deleteMark" class="btn danger" title="Delete selected">Delete</button>
+            </div>
 
-            <ul id="markDetailUl">
-                  <li><input id="labelIdInput" placeholder="id" /></li>
+            <ul id="markDetailUl" class="details">
+                  <li><input id="labelIdInput" class="input" placeholder="ID" /></li>
                   <li>
-                        <input id="labelNameInput" placeholder="'label name" />
+                        <input id="labelNameInput" class="input" placeholder="Label name" />
                   </li>
-
                   <li>
-                        detail <br />
-                        <textarea id="labelDetailInput" cols="30" rows="5"></textarea>
+                        <textarea id="labelDetailInput" class="input" rows="4" placeholder="Detail"></textarea>
                   </li>
-                  <button id="labelSaveButton">save</button>
+                  <li>
+                        <button id="labelSaveButton" class="btn primary">Save</button>
+                  </li>
             </ul>
+            <div id="arrowdiv"></div>
       </div>
       <div id="container"></div>
 

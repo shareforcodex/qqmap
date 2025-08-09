@@ -31,12 +31,28 @@ let currentLocationLayer = null;
 
 
 // Motion/orientation handling for iOS Safari and others
+function computeHeadingFromEvent(event) {
+  if (typeof event.webkitCompassHeading === "number" && !isNaN(event.webkitCompassHeading)) {
+    return event.webkitCompassHeading; // iOS (Safari/Chrome)
+  }
+  if (typeof event.alpha === "number") {
+    const screenOrientation = (screen.orientation && typeof screen.orientation.angle === "number")
+      ? screen.orientation.angle
+      : (typeof window.orientation === "number" ? window.orientation : 0);
+    // Use 360 - alpha to convert to compass heading, then adjust by screen orientation
+    let heading = 360 - event.alpha + (screenOrientation || 0);
+    heading %= 360;
+    if (heading < 0) heading += 360;
+    return heading;
+  }
+  return null;
+}
+
 function handleOrientation(event) {
-  const heading = typeof event.webkitCompassHeading === "number"
-    ? event.webkitCompassHeading
-    : (typeof event.alpha === "number" ? Math.abs(event.alpha - 360) : 0);
-  currentDirection = Math.round(heading);
-  if (typeof arrowdiv !== "undefined" && arrowdiv) {
+  const computed = computeHeadingFromEvent(event);
+  if (computed == null) return;
+  currentDirection = Math.round(computed);
+  if (arrowdiv) {
     arrowdiv.style.transform = `rotate(${-currentDirection + 270}deg)`;
   }
   if (currentLocationLayer && typeof TMap !== "undefined") {
@@ -55,28 +71,36 @@ function handleOrientation(event) {
 
 function addOrientationListenersAfterPermission() {
   if (orientationListenersAdded) return;
-  // Prefer absolute when available; fallback to deviceorientation
-  if ("ondeviceorientationabsolute" in window) {
-    window.addEventListener("deviceorientationabsolute", handleOrientation, true);
-  } else {
-    window.addEventListener("deviceorientation", handleOrientation, true);
+  // Attach both for robustness; browsers will fire the one they support
+  window.addEventListener("deviceorientation", handleOrientation, true);
+  window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+  // Recompute on screen orientation change
+  window.addEventListener("orientationchange", () => {}, true);
+  if (screen.orientation && screen.orientation.addEventListener) {
+    screen.orientation.addEventListener("change", () => {}, { passive: true });
   }
   orientationListenersAdded = true;
 }
 
 function requestIOSMotionPermissionIfNeeded() {
-  const DeviceOrientation = window.DeviceOrientationEvent;
-  if (DeviceOrientation && typeof DeviceOrientation.requestPermission === "function") {
-    return DeviceOrientation.requestPermission()
-      .then((state) => {
-        motionPermissionState = state;
-        if (state === "granted") addOrientationListenersAfterPermission();
-        return state;
-      })
-      .catch(() => {
-        motionPermissionState = "denied";
-        return "denied";
-      });
+  const Orientation = window.DeviceOrientationEvent;
+  const Motion = window.DeviceMotionEvent;
+
+  const hasOrientationAPI = Orientation && typeof Orientation.requestPermission === "function";
+  const hasMotionAPI = Motion && typeof Motion.requestPermission === "function";
+
+  if (hasOrientationAPI || hasMotionAPI) {
+    const requests = [];
+    if (hasOrientationAPI) requests.push(Orientation.requestPermission().catch(() => "denied"));
+    if (hasMotionAPI) requests.push(Motion.requestPermission().catch(() => "denied"));
+
+    return Promise.all(requests).then((states) => {
+      // Consider granted if any returns granted
+      const granted = states.some((s) => s === "granted");
+      motionPermissionState = granted ? "granted" : "denied";
+      if (granted) addOrientationListenersAfterPermission();
+      return motionPermissionState;
+    });
   } else {
     // No permission API (non-iOS); just add listeners
     addOrientationListenersAfterPermission();
@@ -223,8 +247,9 @@ let model = {
 };
 
 
-hideButton.addEventListener("click", (evt) => {
-  markDetailUl.style.display = "none";
+hideButton.addEventListener("click", () => {
+  const isHidden = markDetailUl.style.display === "none" || !markDetailUl.style.display;
+  markDetailUl.style.display = isHidden ? "block" : "none";
 });
 
 deleteMarkButton.addEventListener("click", (e) => {
@@ -499,7 +524,7 @@ lng: 121.47822413398089
   currentLocationLayer.setMap(qqMap);
   multiLabelsLayer.on("click", (evt) => {
     console.log("lable clicked", evt);
-    markDetailUl.style.display = "inherit";
+    markDetailUl.style.display = "block";
     selectedLabel = evt.geometry;
     selectedMarkID = selectedLabel.id;
     let glatLng = evt.latLng;
@@ -586,8 +611,11 @@ lng: 121.47822413398089
   // Start geolocation flow (will prompt on Safari if needed)
   startGeolocation();
 
-  // Try to add orientation listeners immediately (non-iOS); iOS will need a user gesture
-  addOrientationListenersAfterPermission();
+  // Try to add orientation listeners immediately on platforms that don't need explicit permission
+  const Orientation = window.DeviceOrientationEvent;
+  if (!(Orientation && typeof Orientation.requestPermission === "function")) {
+    addOrientationListenersAfterPermission();
+  }
 
   // On first user interaction anywhere, request motion permission once (iOS Safari/Chrome)
   const oneTimeEnable = (evt) => {
