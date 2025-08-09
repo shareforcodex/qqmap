@@ -31,6 +31,40 @@ let multiLabelsLayer = null;
 let currentLocationLayer = null;
 let selectedLocationLayer = null;
 
+// Blinking state for selected search target
+let selectedBlinkTimer = null;
+let selectedBlinkState = false;
+let selectedBlinkPosition = null; // { lat, lng } in GCJ-02
+let selectedBlinkContent = "✚";
+
+function setSelectedGeometry(styleKey) {
+  if (!selectedLocationLayer || !selectedBlinkPosition) return;
+  selectedLocationLayer.setGeometries([
+    {
+      id: "selected_position",
+      styleId: styleKey,
+      position: new TMap.LatLng(selectedBlinkPosition.lat, selectedBlinkPosition.lng),
+      content: selectedBlinkContent,
+      properties: { title: "selected" },
+    },
+  ]);
+}
+
+function startSelectedBlink(gcjLat, gcjLng, content) {
+  selectedBlinkPosition = { lat: gcjLat, lng: gcjLng };
+  selectedBlinkContent = content || "✚";
+  if (selectedBlinkTimer) {
+    clearInterval(selectedBlinkTimer);
+    selectedBlinkTimer = null;
+  }
+  selectedBlinkState = false;
+  setSelectedGeometry("selectedA");
+  selectedBlinkTimer = setInterval(() => {
+    selectedBlinkState = !selectedBlinkState;
+    setSelectedGeometry(selectedBlinkState ? "selectedB" : "selectedA");
+  }, 2000);
+}
+
 
 // Motion/orientation handling for iOS Safari and others
 function computeHeadingFromEvent(event) {
@@ -379,15 +413,7 @@ function renderSearchResults(results) {
         try {
           window.localStorage.setItem(selectedPositionStorageKey, JSON.stringify(pickedCoords));
         } catch (_) {}
-        selectedLocationLayer.setGeometries([
-          {
-            id: "selected_position",
-            styleId: "selected",
-            position: new TMap.LatLng(gcj.lat, gcj.lng),
-            content: item.title || "✚",
-            properties: { title: "selected" },
-          },
-        ]);
+        startSelectedBlink(gcj.lat, gcj.lng, item.title || "✚");
 
         // Hide search UI so it doesn't cover the target
         if (searchPanel) searchPanel.style.display = "none";
@@ -627,9 +653,18 @@ lng: 121.47822413398089
     id: "selected-location-mark-layer",
     map: qqMap,
     styles: {
-      selected: new TMap.LabelStyle({
-        color: "#e11d48", // red
-        size: TEXTMARKSIZE * 4,
+      // same size as other marks; two colors for blinking
+      selectedA: new TMap.LabelStyle({
+        color: "#e11d48",
+        size: TEXTMARKSIZE,
+        offset: { x: 0, y: 0 },
+        angle: 0,
+        alignment: "center",
+        verticalAlignment: "middle",
+      }),
+      selectedB: new TMap.LabelStyle({
+        color: TEXTMARKCOLOR,
+        size: TEXTMARKSIZE,
         offset: { x: 0, y: 0 },
         angle: 0,
         alignment: "center",
@@ -717,16 +752,8 @@ lng: 121.47822413398089
       );
     } catch (_) {}
 
-    // Draw single selected marker (clears previous)
-    selectedLocationLayer.setGeometries([
-      {
-        id: "selected_position",
-        styleId: "selected",
-        position: new TMap.LatLng(gcjCoords.lat, gcjCoords.lng),
-        content: "✚",
-        properties: { title: "selected" },
-      },
-    ]);
+    // Draw single selected marker (clears previous) with blink
+    startSelectedBlink(gcjCoords.lat, gcjCoords.lng, "✚");
 
     // Refresh nearby labels as before
     drawLabels({
@@ -760,15 +787,7 @@ lng: 121.47822413398089
       const wgs = JSON.parse(stored);
       if (wgs && typeof wgs.lat === "number" && typeof wgs.lng === "number") {
         const gcj = wgs2gcj(wgs.lat, wgs.lng);
-        selectedLocationLayer.setGeometries([
-          {
-            id: "selected_position",
-            styleId: "selected",
-            position: new TMap.LatLng(gcj.lat, gcj.lng),
-            content: "✚",
-            properties: { title: "selected" },
-          },
-        ]);
+        startSelectedBlink(gcj.lat, gcj.lng, "✚");
         pickedCoords = wgs;
       }
     }
