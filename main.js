@@ -136,6 +136,11 @@ const arrowdiv = document.getElementById("arrowdiv");
 const labelIdInput = document.getElementById("labelIdInput");
 const labelNameInput = document.getElementById("labelNameInput");
 const labelDetailInput = document.getElementById("labelDetailInput");
+const searchButton = document.getElementById("searchButton");
+const searchPanel = document.getElementById("searchPanel");
+const searchInput = document.getElementById("searchInput");
+const searchGo = document.getElementById("searchGo");
+const searchResults = document.getElementById("searchResults");
 
 let selectedMarkID = "";
 markDetailUl.style.display = "none";
@@ -309,6 +314,95 @@ if (enableSensorsButton) {
         alert("Please allow Motion & Orientation access in Safari Settings > Website Settings.");
       }
     });
+  });
+}
+
+// Toggle search panel from More menu
+if (searchButton && searchPanel) {
+  searchButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    moreMenu && (moreMenu.style.display = "none");
+    const isShown = searchPanel.style.display === "block";
+    searchPanel.style.display = isShown ? "none" : "block";
+    if (!isShown) {
+      searchInput && searchInput.focus();
+    }
+  });
+}
+
+async function searchNearby(keyword) {
+  if (!keyword || !currentGcjLatLng) return;
+  const lat = currentGcjLatLng.lat;
+  const lng = currentGcjLatLng.lng;
+  const radius = 1500;
+  const pageSize = 10;
+  const pageIndex = 1;
+  const boundary = `nearby(${lat},${lng},${radius})`;
+  const params = new URLSearchParams({
+    boundary,
+    keyword,
+    page_size: String(pageSize),
+    page_index: String(pageIndex),
+    key: "ZMFBZ-JCICK-WUBJ3-ACSIA-CJYS7-YMBRS",
+  });
+
+  const url = `https://corsp.suisuy.eu.org?https://apis.map.qq.com/ws/place/v1/search?${params.toString()}`;
+  try {
+    const resp = await fetch(url);
+    const data = await resp.json();
+    renderSearchResults(data && data.data ? data.data : []);
+  } catch (err) {
+    console.error("search error", err);
+    renderSearchResults([]);
+  }
+}
+
+function renderSearchResults(results) {
+  if (!searchResults) return;
+  searchResults.innerHTML = "";
+  if (!Array.isArray(results) || results.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "No results";
+    searchResults.appendChild(li);
+    return;
+  }
+  results.forEach((item) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<div class="result-title">${item.title}</div><div class="result-sub">${item.address || ""}</div>`;
+    li.addEventListener("click", () => {
+      // Center map and add a label for this result
+      const gcj = item.location; // API returns GCJ-02
+      if (gcj && typeof gcj.lat === "number" && typeof gcj.lng === "number") {
+        qqMap.setCenter(new TMap.LatLng(gcj.lat, gcj.lng));
+        // Save as selected and draw marker
+        pickedCoords = gcj2wgs(gcj.lat, gcj.lng);
+        try {
+          window.localStorage.setItem(selectedPositionStorageKey, JSON.stringify(pickedCoords));
+        } catch (_) {}
+        selectedLocationLayer.setGeometries([
+          {
+            id: "selected_position",
+            styleId: "selected",
+            position: new TMap.LatLng(gcj.lat, gcj.lng),
+            content: item.title || "✚",
+            properties: { title: "selected" },
+          },
+        ]);
+
+        // Hide search UI so it doesn't cover the target
+        if (searchPanel) searchPanel.style.display = "none";
+        if (moreMenu) moreMenu.style.display = "none";
+      }
+    });
+    searchResults.appendChild(li);
+  });
+}
+
+if (searchGo && searchInput) {
+  const trigger = () => searchNearby(searchInput.value.trim());
+  searchGo.addEventListener("click", trigger);
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") trigger();
   });
 }
 

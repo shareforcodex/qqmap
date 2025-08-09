@@ -112,6 +112,14 @@
             }
             .dropdown-menu .btn, .dropdown-menu a.btn { width: 100%; text-align: left; margin: 4px 0; }
 
+            /* Search panel */
+            .search-panel { display: none; }
+            .results { list-style: none; padding: 0; margin: 6px 0 0 0; max-height: 40vh; overflow: auto; }
+            .results li { padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 10px; background: #fff; margin-bottom: 6px; cursor: pointer; }
+            .results li:hover { background: #f8fafc; }
+            .result-title { font-weight: 600; }
+            .result-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
             .pill {
                   padding: 6px 10px;
                   border-radius: 999px;
@@ -173,11 +181,20 @@
                   <div class="dropdown" style="margin-left:auto">
                         <button id="moreButton" class="btn" title="More">More ▾</button>
                         <div id="moreMenu" class="dropdown-menu">
+                              <button id="searchButton" class="btn" title="Search nearby">Search nearby</button>
                               <button id="exportButton" class="btn" title="Export labels">Export</button>
                               <a href="./import.html" class="btn secondary" title="Import labels">Import</a>
                               <button id="enableSensors" class="btn" title="Enable compass">Compass</button>
                         </div>
                   </div>
+            </div>
+
+            <div id="searchPanel" class="search-panel">
+                  <div class="panel-row">
+                        <input id="searchInput" class="input" placeholder="Keyword, e.g. 公园 / 餐厅" />
+                        <button id="searchGo" class="btn primary">Go</button>
+                  </div>
+                  <ul id="searchResults" class="results"></ul>
             </div>
 
             <ul id="markDetailUl" class="details">
