@@ -10,6 +10,7 @@ const DEFAULT_COORDS = {
 
 
 const labelsNameInStorage = "mapMarks";
+const selectedPositionStorageKey = "selectedPosition";
 const options = {
   enableHighAccuracy: true,
   timeout: 5000,
@@ -28,6 +29,7 @@ let orientationListenersAdded = false;
 
 let multiLabelsLayer = null;
 let currentLocationLayer = null;
+let selectedLocationLayer = null;
 
 
 // Motion/orientation handling for iOS Safari and others
@@ -526,8 +528,26 @@ lng: 121.47822413398089
     geometries: [],
   });
 
+  // Selected location single-marker layer
+  selectedLocationLayer = new TMap.MultiLabel({
+    id: "selected-location-mark-layer",
+    map: qqMap,
+    styles: {
+      selected: new TMap.LabelStyle({
+        color: "#e11d48", // red
+        size: TEXTMARKSIZE * 4,
+        offset: { x: 0, y: 0 },
+        angle: 0,
+        alignment: "center",
+        verticalAlignment: "middle",
+      }),
+    },
+    geometries: [],
+  });
+
   multiLabelsLayer.setMap(qqMap);
   currentLocationLayer.setMap(qqMap);
+  selectedLocationLayer.setMap(qqMap);
   multiLabelsLayer.on("click", (evt) => {
     console.log("lable clicked", evt);
     markDetailUl.style.display = "block";
@@ -592,23 +612,35 @@ lng: 121.47822413398089
   );
 
   qqMap.on("click", (evt) => {
+    // Convert clicked point to WGS and store as selected position
+    const gcjCoords = evt.latLng;
+    pickedCoords = gcj2wgs(gcjCoords.lat, gcjCoords.lng);
+    console.log("selected position (wgs)", pickedCoords);
+    try {
+      window.localStorage.setItem(
+        selectedPositionStorageKey,
+        JSON.stringify(pickedCoords)
+      );
+    } catch (_) {}
 
+    // Draw single selected marker (clears previous)
+    selectedLocationLayer.setGeometries([
+      {
+        id: "selected_position",
+        styleId: "selected",
+        position: new TMap.LatLng(gcjCoords.lat, gcjCoords.lng),
+        content: "✚",
+        properties: { title: "selected" },
+      },
+    ]);
 
-    let gcjCoords = evt.latLng;
-    pickedCoords = gcj2wgs(
-      gcjCoords.lat,
-      gcjCoords.lng
-    );
-    console.log(pickedCoords);
-
+    // Refresh nearby labels as before
     drawLabels({
       minLat: pickedCoords.lat - 0.002,
       minLng: pickedCoords.lng - 0.002,
       maxLat: pickedCoords.lat + 0.002,
       maxLng: pickedCoords.lng + 0.002,
-    })
-    // removed mark prefix option
-
+    });
   });
 
   // Start geolocation flow (will prompt on Safari if needed)
@@ -626,6 +658,27 @@ lng: 121.47822413398089
     document.removeEventListener("pointerdown", oneTimeEnable);
   };
   document.addEventListener("pointerdown", oneTimeEnable, { passive: true, once: true });
+
+  // Restore previously selected position if any
+  try {
+    const stored = window.localStorage.getItem(selectedPositionStorageKey);
+    if (stored) {
+      const wgs = JSON.parse(stored);
+      if (wgs && typeof wgs.lat === "number" && typeof wgs.lng === "number") {
+        const gcj = wgs2gcj(wgs.lat, wgs.lng);
+        selectedLocationLayer.setGeometries([
+          {
+            id: "selected_position",
+            styleId: "selected",
+            position: new TMap.LatLng(gcj.lat, gcj.lng),
+            content: "✚",
+            properties: { title: "selected" },
+          },
+        ]);
+        pickedCoords = wgs;
+      }
+    }
+  } catch (_) {}
 }
 
 
