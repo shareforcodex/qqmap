@@ -53,7 +53,7 @@ function handleOrientation(event) {
   if (computed == null) return;
   currentDirection = Math.round(computed);
   if (arrowdiv) {
-    arrowdiv.style.transform = `rotate(${-currentDirection + 270}deg)`;
+    arrowdiv.style.transform = `rotate(${currentDirection + 270}deg)`;
   }
   if (currentLocationLayer && typeof TMap !== "undefined") {
     currentLocationLayer.setStyles({
@@ -61,7 +61,7 @@ function handleOrientation(event) {
         color: "#0000ff",
         size: TEXTMARKSIZE * 3,
         offset: { x: 0, y: 0 },
-        angle: currentDirection,
+        angle: -currentDirection,
         alignment: "center",
         verticalAlignment: "middle",
       }),
