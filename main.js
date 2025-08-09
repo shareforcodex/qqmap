@@ -21,6 +21,9 @@ const locationRefreshRateTime = 2000;
 let qqMap;
 let currentDirection = 0;
 let pickedCoords = {};
+let geoWatchId = null;
+let motionPermissionState = "unknown";
+let orientationListenersAdded = false;
 
 
 let multiLabelsLayer = null;
@@ -51,25 +54,33 @@ function handleOrientation(event) {
 }
 
 function addOrientationListenersAfterPermission() {
+  if (orientationListenersAdded) return;
   // Prefer absolute when available; fallback to deviceorientation
   if ("ondeviceorientationabsolute" in window) {
     window.addEventListener("deviceorientationabsolute", handleOrientation, true);
   } else {
     window.addEventListener("deviceorientation", handleOrientation, true);
   }
+  orientationListenersAdded = true;
 }
 
 function requestIOSMotionPermissionIfNeeded() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const DeviceOrientation = window.DeviceOrientationEvent;
-  if (isIOS && DeviceOrientation && typeof DeviceOrientation.requestPermission === "function") {
-    return DeviceOrientation.requestPermission().then((state) => {
-      if (state === "granted") addOrientationListenersAfterPermission();
-      return state;
-    }).catch(() => "denied");
+  if (DeviceOrientation && typeof DeviceOrientation.requestPermission === "function") {
+    return DeviceOrientation.requestPermission()
+      .then((state) => {
+        motionPermissionState = state;
+        if (state === "granted") addOrientationListenersAfterPermission();
+        return state;
+      })
+      .catch(() => {
+        motionPermissionState = "denied";
+        return "denied";
+      });
   } else {
-    // Non-iOS or no permission API; just add listeners
+    // No permission API (non-iOS); just add listeners
     addOrientationListenersAfterPermission();
+    motionPermissionState = "granted";
     return Promise.resolve("granted");
   }
 }
@@ -91,6 +102,14 @@ let showCurrentButton =
   document.querySelector("#showCurrent");
 let enableSensorsButton = document.querySelector("#enableSensors");
 let hideButton = document.querySelector("#hideDetail");
+
+// Explicitly bind DOM elements by id to avoid relying on non-standard globals
+const postionDisplay = document.getElementById("postionDisplay");
+const exportButton = document.getElementById("exportButton");
+const arrowdiv = document.getElementById("arrowdiv");
+const labelIdInput = document.getElementById("labelIdInput");
+const labelNameInput = document.getElementById("labelNameInput");
+const labelDetailInput = document.getElementById("labelDetailInput");
 
 let selectedMarkID = "";
 markDetailUl.style.display = "none";
@@ -245,18 +264,9 @@ document
   });
 showCurrentButton.addEventListener("pointerdown", () => {
   console.log("center map now");
-  // Trigger a one-shot getCurrentPosition to prompt iOS permission if not yet granted
-  try {
-    navigator.geolocation.getCurrentPosition(() => {}, () => {}, { enableHighAccuracy: true, timeout: 5000 });
-  } catch (_) {}
-  setCenter(
-    qqMap,
-    currentGcjLatLng.lat,
-    currentGcjLatLng.lng
-  );
-  qqMap.setRotation(0);
-  qqMap.setPitch(0);
-  qqMap.setZoom(17);
+  // Try to enable motion sensors on user gesture for iOS Safari/Chrome
+  requestIOSMotionPermissionIfNeeded();
+  startGeolocation({ forceRecenter: true });
 });
 
 if (enableSensorsButton) {
@@ -443,9 +453,10 @@ lng: 121.47822413398089
     center: new TMap.LatLng(39.98210863924864, 116.31310899739151), // 设置地图中心点坐标，
     pitch: 0, // 俯仰度
     rotation: 0, // 旋转角度
-        viewMode:'2D',
-
+    viewMode:'2D'
+               
   });
+  qqMap.setRotatable(false);
 
 
 
@@ -572,41 +583,74 @@ lng: 121.47822413398089
 
   });
 
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      console.log(
-        "locatin changed to",
-        pos.coords
-      );
-      var coords = pos.coords;
-      let gcjCoords = wgs2gcj(
-        coords.latitude,
-        coords.longitude
-      );
-      currentGcjLatLng = gcjCoords;
-      postionDisplay.innerHTML =
-        "" +
-        coords.latitude.toFixed(6) +
-        "," +
-        coords.longitude.toFixed(6);
+  // Start geolocation flow (will prompt on Safari if needed)
+  startGeolocation();
 
-      console.log("location changed");
-      model.updateMap({
-        ...model.map,
-        currentLatLng: {
-          lat: coords.latitude,
-          lng: coords.longitude,
-        },
-      });
-    },
-    error,
-    options
-  );
-
-  // Try to add orientation listeners immediately (non-iOS), and let iOS click button to enable
+  // Try to add orientation listeners immediately (non-iOS); iOS will need a user gesture
   addOrientationListenersAfterPermission();
+
+  // On first user interaction anywhere, request motion permission once (iOS Safari/Chrome)
+  const oneTimeEnable = (evt) => {
+    requestIOSMotionPermissionIfNeeded();
+    document.removeEventListener("pointerdown", oneTimeEnable);
+  };
+  document.addEventListener("pointerdown", oneTimeEnable, { passive: true, once: true });
 }
 
 
 // iOS requires user gesture to enable motion. Show helper button and init map immediately.
 initMap();
+
+// ----- Geolocation helpers (better iOS Safari handling) -----
+function handlePositionUpdate(coords) {
+  const gcjCoords = wgs2gcj(coords.latitude, coords.longitude);
+  currentGcjLatLng = gcjCoords;
+  try {
+    postionDisplay.innerHTML = `${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`;
+  } catch (_) {}
+  model.updateMap({
+    ...model.map,
+    currentLatLng: {
+      lat: coords.latitude,
+      lng: coords.longitude,
+    },
+  });
+}
+
+function startGeolocation({ forceRecenter = false } = {}) {
+  if (!("geolocation" in navigator)) {
+    console.warn("Geolocation API not available in this browser.");
+    return;
+  }
+
+  // One-shot call to trigger permission prompt (especially for iOS Safari)
+  try {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        handlePositionUpdate(pos.coords);
+        if (forceRecenter && currentGcjLatLng) {
+          setCenter(qqMap, currentGcjLatLng.lat, currentGcjLatLng.lng);
+          qqMap.setRotation(0);
+          qqMap.setPitch(0);
+          qqMap.setZoom(17);
+        }
+      },
+      error,
+      options
+    );
+  } catch (_) {}
+
+  // Start watching only once
+  if (geoWatchId == null) {
+    try {
+      geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          console.log("locatin changed to", pos.coords);
+          handlePositionUpdate(pos.coords);
+        },
+        error,
+        options
+      );
+    } catch (_) {}
+  }
+}
