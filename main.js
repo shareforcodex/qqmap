@@ -117,8 +117,6 @@ let currentGcjLatLng;
 let tg = {};
 let tg1 = {};
 
-let markPrefixInput =
-  document.querySelector("#markPrefixInput");
 let deleteMarkButton = document.querySelector("#deleteMark");
 let markDetailDisplay = document.querySelector("#markDetail");
 let markDetailUl = document.querySelector("#markDetailUl");
@@ -126,6 +124,8 @@ let showCurrentButton =
   document.querySelector("#showCurrent");
 let enableSensorsButton = document.querySelector("#enableSensors");
 let hideButton = document.querySelector("#hideDetail");
+let moreButton = document.querySelector("#moreButton");
+let moreMenu = document.querySelector("#moreMenu");
 
 // Explicitly bind DOM elements by id to avoid relying on non-standard globals
 const postionDisplay = document.getElementById("postionDisplay");
@@ -252,6 +252,21 @@ hideButton.addEventListener("click", () => {
   markDetailUl.style.display = isHidden ? "block" : "none";
 });
 
+// More dropdown interactions
+if (moreButton && moreMenu) {
+  const toggleMenu = () => {
+    const isOpen = moreMenu.style.display === "block";
+    moreMenu.style.display = isOpen ? "none" : "block";
+  };
+  moreButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+  document.addEventListener("click", () => {
+    moreMenu.style.display = "none";
+  });
+}
+
 deleteMarkButton.addEventListener("click", (e) => {
   model.deleteLabel(selectedLabel.id);
   drawLabels({
@@ -278,15 +293,6 @@ document
     model.updateLabel(newLabel);
   });
 
-document
-  .querySelector("#toogleMarkModeButton")
-  .addEventListener("click", (e) => {
-    if (markPrefixInput.value) {
-      markPrefixInput.value = "";
-    } else {
-      markPrefixInput.value = "1";
-    }
-  });
 showCurrentButton.addEventListener("pointerdown", () => {
   console.log("center map now");
   // Try to enable motion sensors on user gesture for iOS Safari/Chrome
@@ -577,7 +583,7 @@ lng: 121.47822413398089
         "_" +
         pickedCoords.lng,
       name: name,
-      detail: markPrefixInput.value,
+      detail: "",
       lat: pickedCoords.lat,
       lng: pickedCoords.lng,
     };
@@ -601,10 +607,7 @@ lng: 121.47822413398089
       maxLat: pickedCoords.lat + 0.002,
       maxLng: pickedCoords.lng + 0.002,
     })
-    // if (markPrefixInput.value.length < 1) {
-
-    //   return;
-    // }
+    // removed mark prefix option
 
   });
 

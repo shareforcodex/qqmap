@@ -48,8 +48,8 @@
                   z-index: 9999;
                   display: flex;
                   flex-direction: column;
-                  gap: 10px;
-                  padding: 12px;
+                  gap: 6px;
+                  padding: 10px;
                   background: var(--panel-bg);
                   border: 1px solid var(--panel-border);
                   border-radius: var(--radius);
@@ -62,7 +62,7 @@
             .panel-row {
                   display: flex;
                   align-items: center;
-                  gap: 8px;
+                  gap: 6px;
                   flex-wrap: wrap;
             }
 
@@ -94,6 +94,23 @@
             .btn.danger { background: #fee2e2; color: var(--danger); border-color: #fecaca; }
 
             .icon-btn { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--panel-border); background: #fff; cursor: pointer; }
+
+            /* Dropdown */
+            .dropdown { position: relative; }
+            .dropdown-menu {
+                  position: absolute;
+                  top: 100%;
+                  right: 0;
+                  display: none;
+                  margin-top: 6px;
+                  padding: 6px;
+                  background: rgba(255, 255, 255, 0.98);
+                  border: 1px solid var(--panel-border);
+                  border-radius: 10px;
+                  box-shadow: var(--shadow);
+                  min-width: 160px;
+            }
+            .dropdown-menu .btn, .dropdown-menu a.btn { width: 100%; text-align: left; margin: 4px 0; }
 
             .pill {
                   padding: 6px 10px;
@@ -128,8 +145,8 @@
 
             #arrowdiv {
                   position: fixed;
-                  right: 0;
-                  bottom: 0;
+                  left: 0;
+                  top: 0;
                   width: 8vw;
                   height: 8vw;
                   background-repeat: no-repeat;
@@ -148,18 +165,19 @@
 
       <div id="markDetail" class="control-panel">
             <div class="panel-row">
-                  <input id="markPrefixInput" class="input" type="text" placeholder="Mark prefix" />
-                  <button id="toogleMarkModeButton" class="btn" title="Toggle mark mode">Mark</button>
-                  <button id="enableSensors" class="btn" title="Enable compass">Compass</button>
-            </div>
-            <div class="panel-row">
                   <div id="postionDisplay" class="pill">lat ,lng</div>
-                  <button id="hideDetail" class="icon-btn" title="Toggle details">Details</button>
             </div>
             <div class="panel-row">
-                  <button id="exportButton" class="btn primary" title="Export labels">Export</button>
-                  <a href="./import.html" class="btn secondary" title="Import labels">Import</a>
+                  <button id="hideDetail" class="icon-btn" title="Toggle details">Details</button>
                   <button id="deleteMark" class="btn danger" title="Delete selected">Delete</button>
+                  <div class="dropdown" style="margin-left:auto">
+                        <button id="moreButton" class="btn" title="More">More ▾</button>
+                        <div id="moreMenu" class="dropdown-menu">
+                              <button id="exportButton" class="btn" title="Export labels">Export</button>
+                              <a href="./import.html" class="btn secondary" title="Import labels">Import</a>
+                              <button id="enableSensors" class="btn" title="Enable compass">Compass</button>
+                        </div>
+                  </div>
             </div>
 
             <ul id="markDetailUl" class="details">
@@ -174,9 +192,10 @@
                         <button id="labelSaveButton" class="btn primary">Save</button>
                   </li>
             </ul>
-            <div id="arrowdiv"></div>
       </div>
       <div id="container"></div>
+            <div id="arrowdiv"></div>
+
 
 </body>
 
