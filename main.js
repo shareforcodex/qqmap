@@ -350,7 +350,7 @@ document
     model.updateLabel(newLabel);
   });
 
-showCurrentButton.addEventListener("pointerdown", async () => {
+showCurrentButton.addEventListener("pointerdown", async (e) => {
   e.preventDefault();
   console.log("center map now");
   // Request motion/orientation permission on explicit user action (better for iOS after reopen)
