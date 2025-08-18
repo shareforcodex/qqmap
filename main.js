@@ -192,6 +192,45 @@ const exportClose = document.getElementById("exportClose");
 const exportCopy = document.getElementById("exportCopy");
 const exportDownload = document.getElementById("exportDownload");
 
+// Toast
+const toastEl = document.getElementById("toast");
+let toastTimer = null;
+function showToast(msg, ms = 1200) {
+  if (!toastEl) return alert(msg);
+  toastEl.textContent = msg;
+  toastEl.style.display = "block";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.style.display = "none";
+  }, ms);
+}
+
+// Bottom-right clicked coordinates pill
+const clickedDisplay = document.getElementById("clickedDisplay");
+if (clickedDisplay) {
+  clickedDisplay.addEventListener("click", async () => {
+    const text = (clickedDisplay.textContent || "").trim();
+    if (!text) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand && document.execCommand("copy");
+        ta.remove();
+      }
+      showToast("Copied");
+    } catch (_) {
+      showToast("Copy failed");
+    }
+  });
+}
+
 let selectedMarkID = "";
 markDetailUl.style.display = "none";
 
@@ -857,6 +896,13 @@ lng: 121.47822413398089
     // Draw single selected marker (clears previous) with blink
     startSelectedBlink(gcjCoords.lat, gcjCoords.lng, "✚");
 
+    // Show clicked coordinates at bottom-right
+    if (clickedDisplay) {
+      const txt = `${pickedCoords.lat.toFixed(6)},${pickedCoords.lng.toFixed(6)}`;
+      clickedDisplay.textContent = txt;
+      clickedDisplay.style.display = "inline-block";
+    }
+
     // Refresh nearby labels as before
     drawLabels({
       minLat: pickedCoords.lat - 0.002,
@@ -894,6 +940,33 @@ lng: 121.47822413398089
       }
     }
   } catch (_) {}
+}
+
+// Click-to-copy for the coordinate pill
+if (postionDisplay) {
+  postionDisplay.style.cursor = "pointer";
+  postionDisplay.title = "Click to copy coordinates";
+  postionDisplay.addEventListener("click", async () => {
+    const text = (postionDisplay.textContent || "").trim();
+    if (!text) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand && document.execCommand("copy");
+        ta.remove();
+      }
+      showToast("Copied");
+    } catch (err) {
+      showToast("Copy failed");
+    }
+  });
 }
 
 
