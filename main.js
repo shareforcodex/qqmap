@@ -334,10 +334,13 @@ document
     model.updateLabel(newLabel);
   });
 
-showCurrentButton.addEventListener("pointerdown", () => {
+showCurrentButton.addEventListener("pointerdown", async () => {
+  e.preventDefault();
   console.log("center map now");
-  // Try to enable motion sensors on user gesture for iOS Safari/Chrome
-  requestIOSMotionPermissionIfNeeded();
+  // Request motion/orientation permission on explicit user action (better for iOS after reopen)
+  try {
+    await requestIOSMotionPermissionIfNeeded();
+  } catch (_) {}
   startGeolocation({ forceRecenter: true });
 });
 
