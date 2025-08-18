@@ -161,6 +161,30 @@
                   background-size: cover;
                   background-image: url("./arrow-right.png");
             }
+
+            /* Modal */
+            .modal-backdrop {
+                  position: fixed;
+                  inset: 0;
+                  background: rgba(0,0,0,0.35);
+                  display: none;
+                  align-items: center;
+                  justify-content: center;
+                  z-index: 10001;
+            }
+            .modal {
+                  width: min(92vw, 560px);
+                  max-height: 80vh;
+                  overflow: auto;
+                  background: #fff;
+                  border-radius: var(--radius);
+                  box-shadow: var(--shadow);
+                  border: 1px solid var(--panel-border);
+                  padding: 14px;
+            }
+            .modal h3 { margin: 6px 0 10px 0; }
+            .modal .hint { color: var(--muted); font-size: 12px; }
+            .modal textarea { width: 100%; box-sizing: border-box; }
       </style>
       <script charset="utf-8" src="https://map.qq.com/api/gljs?v=1.exp&key=ZMFBZ-JCICK-WUBJ3-ACSIA-CJYS7-YMBRS"></script>
       <!-- <script charset="utf-8" src="https://map.qq.com/api/gljs?v=1.exp&key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77"></script> -->
@@ -183,7 +207,7 @@
                         <div id="moreMenu" class="dropdown-menu">
                               <button id="searchButton" class="btn" title="Search nearby">Search nearby</button>
                               <button id="exportButton" class="btn" title="Export labels">Export</button>
-                              <a href="./import.html" class="btn secondary" title="Import labels">Import</a>
+                              <button id="importButton" class="btn secondary" title="Import labels">Import</button>
                               <button id="enableSensors" class="btn" title="Enable compass">Compass</button>
                         </div>
                   </div>
@@ -212,6 +236,42 @@
       </div>
       <div id="container"></div>
             <div id="arrowdiv"></div>
+
+      <!-- Import Modal -->
+      <div id="importModal" class="modal-backdrop">
+            <div class="modal">
+                  <h3>Import Labels</h3>
+                  <div class="hint">Paste JSON or choose a file. Default action merges with existing labels.</div>
+                  <div class="panel-row" style="margin-top:8px">
+                        <input type="file" id="importFile" accept="application/json,.json" class="input" />
+                  </div>
+                  <div class="panel-row" style="margin-top:6px">
+                        <textarea id="importInput" class="input" rows="8" placeholder='{"id": {"id":"...","name":"...","lat":0,"lng":0}}'></textarea>
+                  </div>
+                  <div class="panel-row" style="margin-top:6px">
+                        <label class="pill"><input type="checkbox" id="replaceExisting" /> Replace existing labels</label>
+                        <span style="margin-left:auto"></span>
+                        <button id="importCancel" class="btn">Cancel</button>
+                        <button id="importConfirm" class="btn primary">Import</button>
+                  </div>
+            </div>
+      </div>
+
+      <!-- Export Modal -->
+      <div id="exportModal" class="modal-backdrop">
+            <div class="modal">
+                  <h3>Export Labels</h3>
+                  <div id="exportMeta" class="pill">0 labels</div>
+                  <div class="panel-row" style="margin-top:6px">
+                        <textarea id="exportOutput" class="input" rows="8" readonly></textarea>
+                  </div>
+                  <div class="panel-row" style="margin-top:6px">
+                        <button id="exportClose" class="btn">Close</button>
+                        <button id="exportCopy" class="btn">Copy</button>
+                        <button id="exportDownload" class="btn primary">Download</button>
+                  </div>
+            </div>
+      </div>
 
 
 </body>

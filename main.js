@@ -62,7 +62,7 @@ function startSelectedBlink(gcjLat, gcjLng, content) {
   selectedBlinkTimer = setInterval(() => {
     selectedBlinkState = !selectedBlinkState;
     setSelectedGeometry(selectedBlinkState ? "selectedB" : "selectedA");
-  }, 2000);
+  }, 4000);
 }
 
 
@@ -166,6 +166,7 @@ let moreMenu = document.querySelector("#moreMenu");
 // Explicitly bind DOM elements by id to avoid relying on non-standard globals
 const postionDisplay = document.getElementById("postionDisplay");
 const exportButton = document.getElementById("exportButton");
+const importButton = document.getElementById("importButton");
 const arrowdiv = document.getElementById("arrowdiv");
 const labelIdInput = document.getElementById("labelIdInput");
 const labelNameInput = document.getElementById("labelNameInput");
@@ -175,6 +176,21 @@ const searchPanel = document.getElementById("searchPanel");
 const searchInput = document.getElementById("searchInput");
 const searchGo = document.getElementById("searchGo");
 const searchResults = document.getElementById("searchResults");
+
+// Import/Export modals
+const importModal = document.getElementById("importModal");
+const importFile = document.getElementById("importFile");
+const importInput = document.getElementById("importInput");
+const replaceExisting = document.getElementById("replaceExisting");
+const importCancel = document.getElementById("importCancel");
+const importConfirm = document.getElementById("importConfirm");
+
+const exportModal = document.getElementById("exportModal");
+const exportMeta = document.getElementById("exportMeta");
+const exportOutput = document.getElementById("exportOutput");
+const exportClose = document.getElementById("exportClose");
+const exportCopy = document.getElementById("exportCopy");
+const exportDownload = document.getElementById("exportDownload");
 
 let selectedMarkID = "";
 markDetailUl.style.display = "none";
@@ -435,17 +451,94 @@ if (searchGo && searchInput) {
   });
 }
 
-exportButton.addEventListener("click", () => {
-  console.log("export json");
-  let exportStr =
-    localStorage.getItem(labelsNameInStorage);
-  console.log(exportStr);
-  const blob = new Blob([exportStr], {
-    type: "application/json",
+// ---- Import / Export UI ----
+function showModal(el) { if (el) el.style.display = "flex"; }
+function hideModal(el) { if (el) el.style.display = "none"; }
+
+if (importButton && importModal) {
+  importButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    moreMenu && (moreMenu.style.display = "none");
+    importInput && (importInput.value = "");
+    replaceExisting && (replaceExisting.checked = false);
+    showModal(importModal);
   });
-  let exportFileUrl = URL.createObjectURL(blob);
-  window.open(exportFileUrl);
-});
+  importCancel && importCancel.addEventListener("click", () => hideModal(importModal));
+  importModal.addEventListener("click", (e) => { if (e.target === importModal) hideModal(importModal); });
+  if (importFile && importInput) {
+    importFile.addEventListener("change", async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        const txt = await f.text();
+        importInput.value = txt;
+      } catch (_) {}
+    });
+  }
+  if (importConfirm) {
+    importConfirm.addEventListener("click", () => {
+      if (!importInput) return;
+      let parsed;
+      try {
+        parsed = JSON.parse(importInput.value || "{}");
+      } catch (err) {
+        alert("Invalid JSON. Please check and try again.");
+        return;
+      }
+      const existing = getObjFromStorage(labelsNameInStorage);
+      const next = (replaceExisting && replaceExisting.checked) ? parsed : { ...existing, ...parsed };
+      setObjToStorage(labelsNameInStorage, next);
+      // Refresh labels around current center
+      try {
+        const center = qqMap && qqMap.getCenter ? qqMap.getCenter() : null;
+        let wgsCenter = center ? gcj2wgs(center.lat, center.lng) : (pickedCoords && pickedCoords.lat ? pickedCoords : null);
+        const lat = wgsCenter ? wgsCenter.lat : DEFAULT_COORDS.lat;
+        const lng = wgsCenter ? wgsCenter.lng : DEFAULT_COORDS.lng;
+        drawLabels({ minLat: lat - 0.05, minLng: lng - 0.05, maxLat: lat + 0.05, maxLng: lng + 0.05 });
+      } catch (_) {}
+      hideModal(importModal);
+      alert("Import completed");
+    });
+  }
+}
+
+if (exportButton && exportModal) {
+  exportButton.addEventListener("click", () => {
+    moreMenu && (moreMenu.style.display = "none");
+    const obj = getObjFromStorage(labelsNameInStorage);
+    const str = JSON.stringify(obj, null, 2);
+    if (exportOutput) exportOutput.value = str;
+    if (exportMeta) exportMeta.textContent = `${Object.keys(obj).length} labels`;
+    showModal(exportModal);
+  });
+  exportClose && exportClose.addEventListener("click", () => hideModal(exportModal));
+  exportModal.addEventListener("click", (e) => { if (e.target === exportModal) hideModal(exportModal); });
+  if (exportCopy && exportOutput) {
+    exportCopy.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(exportOutput.value);
+        alert("Copied to clipboard");
+      } catch (_) {
+        exportOutput.select();
+        document.execCommand && document.execCommand("copy");
+        alert("Copied (fallback)");
+      }
+    });
+  }
+  if (exportDownload && exportOutput) {
+    exportDownload.addEventListener("click", () => {
+      const blob = new Blob([exportOutput.value || "{}"], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "mapMarks.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+}
 
 
 
@@ -656,17 +749,17 @@ lng: 121.47822413398089
     id: "selected-location-mark-layer",
     map: qqMap,
     styles: {
-      // same size as other marks; two colors for blinking
+      // Blink between white and black for high contrast
       selectedA: new TMap.LabelStyle({
-        color: "#e11d48",
-        size: TEXTMARKSIZE,
+        color: "#ffffff",
+        size: TEXTMARKSIZE*1.5,
         offset: { x: 0, y: 0 },
         angle: 0,
         alignment: "center",
         verticalAlignment: "middle",
       }),
       selectedB: new TMap.LabelStyle({
-        color: TEXTMARKCOLOR,
+        color: "#000000",
         size: TEXTMARKSIZE,
         offset: { x: 0, y: 0 },
         angle: 0,
@@ -698,6 +791,12 @@ lng: 121.47822413398089
       model.labels[selectedMarkID][
       "detail"
       ];
+
+    // Start white/black blink at clicked label position using its name as content
+    try {
+      const name = (model.labels && model.labels[selectedMarkID] && model.labels[selectedMarkID].name) || "✚";
+      startSelectedBlink(glatLng.lat, glatLng.lng, name);
+    } catch (_) {}
   });
 
   model.updateMap({
