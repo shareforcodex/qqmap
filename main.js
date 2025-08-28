@@ -111,9 +111,9 @@ function addOrientationListenersAfterPermission() {
   window.addEventListener("deviceorientation", handleOrientation, true);
   window.addEventListener("deviceorientationabsolute", handleOrientation, true);
   // Recompute on screen orientation change
-  window.addEventListener("orientationchange", () => {}, true);
+  window.addEventListener("orientationchange", () => { }, true);
   if (screen.orientation && screen.orientation.addEventListener) {
-    screen.orientation.addEventListener("change", () => {}, { passive: true });
+    screen.orientation.addEventListener("change", () => { }, { passive: true });
   }
   orientationListenersAdded = true;
 }
@@ -389,15 +389,34 @@ document
     model.updateLabel(newLabel);
   });
 
-showCurrentButton.addEventListener("pointerdown", async (e) => {
-  e.preventDefault();
-  console.log("center map now");
-  // Request motion/orientation permission on explicit user action (better for iOS after reopen)
-  try {
-    await requestIOSMotionPermissionIfNeeded();
-  } catch (_) {}
-  startGeolocation({ forceRecenter: true });
-});
+// showCurrentButton.addEventListener("click", async (e) => {
+//   console.log("center map now");
+//   // Request motion/orientation permission on explicit user action (better for iOS after reopen)
+//  startGeolocation({ forceRecenter: true });
+//   requestIOSMotionPermissionIfNeeded().then((state) => {
+//       if (state !== "granted") {
+//         alert("Please allow Motion & Orientation access in Safari Settings > Website Settings.");
+//       }
+//     });
+
+// });
+
+if (showCurrentButton) {
+
+  showCurrentButton.addEventListener("click", () => {
+    setTimeout(() => {
+      startGeolocation({ forceRecenter: true });
+
+    }, 200);
+    requestIOSMotionPermissionIfNeeded().then((state) => {
+      if (state !== "granted") {
+        alert("Please allow Motion & Orientation access in Safari Settings > Website Settings.");
+      }
+    });
+  });
+
+
+}
 
 if (enableSensorsButton) {
   enableSensorsButton.addEventListener("click", () => {
@@ -470,7 +489,7 @@ function renderSearchResults(results) {
         pickedCoords = gcj2wgs(gcj.lat, gcj.lng);
         try {
           window.localStorage.setItem(selectedPositionStorageKey, JSON.stringify(pickedCoords));
-        } catch (_) {}
+        } catch (_) { }
         startSelectedBlink(gcj.lat, gcj.lng, item.title || "✚");
 
         // Hide search UI so it doesn't cover the target
@@ -511,7 +530,7 @@ if (importButton && importModal) {
       try {
         const txt = await f.text();
         importInput.value = txt;
-      } catch (_) {}
+      } catch (_) { }
     });
   }
   if (importConfirm) {
@@ -534,7 +553,7 @@ if (importButton && importModal) {
         const lat = wgsCenter ? wgsCenter.lat : DEFAULT_COORDS.lat;
         const lng = wgsCenter ? wgsCenter.lng : DEFAULT_COORDS.lng;
         drawLabels({ minLat: lat - 0.05, minLng: lng - 0.05, maxLat: lat + 0.05, maxLng: lng + 0.05 });
-      } catch (_) {}
+      } catch (_) { }
       hideModal(importModal);
       alert("Import completed");
     });
@@ -741,8 +760,8 @@ lng: 121.47822413398089
     center: new TMap.LatLng(39.98210863924864, 116.31310899739151), // 设置地图中心点坐标，
     pitch: 0, // 俯仰度
     rotation: 0, // 旋转角度
-    viewMode:'2D'
-               
+    viewMode: '2D'
+
   });
   qqMap.setRotatable(false);
 
@@ -752,7 +771,7 @@ lng: 121.47822413398089
   qqMap.setDoubleClickZoom(false);
 
 
-   multiLabelsLayer = new TMap.MultiLabel({
+  multiLabelsLayer = new TMap.MultiLabel({
     id: "normal-textlabel-layer",
     map: qqMap,
     styles: {
@@ -767,7 +786,7 @@ lng: 121.47822413398089
     },
     geometries: [],
   });
-   currentLocationLayer = new TMap.MultiLabel({
+  currentLocationLayer = new TMap.MultiLabel({
     id: "current-location-mark-layer",
     map: qqMap,
     styles: {
@@ -791,7 +810,7 @@ lng: 121.47822413398089
       // Blink between white and black for high contrast
       selectedA: new TMap.LabelStyle({
         color: "#ffffff",
-        size: TEXTMARKSIZE*1.5,
+        size: TEXTMARKSIZE * 1.5,
         offset: { x: 0, y: 0 },
         angle: 0,
         alignment: "center",
@@ -835,7 +854,7 @@ lng: 121.47822413398089
     try {
       const name = (model.labels && model.labels[selectedMarkID] && model.labels[selectedMarkID].name) || "✚";
       startSelectedBlink(glatLng.lat, glatLng.lng, name);
-    } catch (_) {}
+    } catch (_) { }
   });
 
   model.updateMap({
@@ -891,7 +910,7 @@ lng: 121.47822413398089
         selectedPositionStorageKey,
         JSON.stringify(pickedCoords)
       );
-    } catch (_) {}
+    } catch (_) { }
 
     // Draw single selected marker (clears previous) with blink
     startSelectedBlink(gcjCoords.lat, gcjCoords.lng, "✚");
@@ -939,7 +958,7 @@ lng: 121.47822413398089
         pickedCoords = wgs;
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 // Click-to-copy for the coordinate pill
@@ -979,7 +998,7 @@ function handlePositionUpdate(coords) {
   currentGcjLatLng = gcjCoords;
   try {
     postionDisplay.innerHTML = `${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`;
-  } catch (_) {}
+  } catch (_) { }
   model.updateMap({
     ...model.map,
     currentLatLng: {
@@ -1010,7 +1029,7 @@ function startGeolocation({ forceRecenter = false } = {}) {
       error,
       options
     );
-  } catch (_) {}
+  } catch (_) { }
 
   // Start watching only once
   if (geoWatchId == null) {
@@ -1023,6 +1042,6 @@ function startGeolocation({ forceRecenter = false } = {}) {
         error,
         options
       );
-    } catch (_) {}
+    } catch (_) { }
   }
 }
