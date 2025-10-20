@@ -33,11 +33,77 @@ let selectedLocationLayer = null;
 
 // Blinking state for selected search target
 let selectedBlinkTimer = null;
-let selectedBlinkState = false;
 let selectedBlinkPosition = null; // { lat, lng } in GCJ-02
 let selectedBlinkContent = "✚";
+let selectedBlinkProgress = 0;
+let selectedBlinkDirection = 1;
 
-function setSelectedGeometry(styleKey) {
+const SELECTED_BLINK_STYLE_ID = "selectedGradient";
+const SELECTED_BLINK_INTERVAL_MS = 160;
+const SELECTED_BLINK_STEP = 0.05;
+const SELECTED_BLINK_START_COLOR = "#0066ff";
+const SELECTED_BLINK_END_COLOR = "#ffff00";
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function hexToRgb(hex) {
+  const normalized = hex.replace("#", "");
+  const bigint = parseInt(normalized, 16);
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255,
+  };
+}
+
+function rgbChannelToHex(channel) {
+  const clamped = Math.round(channel);
+  const hex = clamped.toString(16);
+  return hex.length === 1 ? `0${hex}` : hex;
+}
+
+function interpolateColor(startHex, endHex, t) {
+  const progress = clamp01(t);
+  const start = hexToRgb(startHex);
+  const end = hexToRgb(endHex);
+  const r = start.r + (end.r - start.r) * progress;
+  const g = start.g + (end.g - start.g) * progress;
+  const b = start.b + (end.b - start.b) * progress;
+  return `#${rgbChannelToHex(r)}${rgbChannelToHex(g)}${rgbChannelToHex(b)}`;
+}
+
+function applySelectedBlinkStyle(progress) {
+  if (!selectedLocationLayer) return;
+  const color = interpolateColor(SELECTED_BLINK_START_COLOR, SELECTED_BLINK_END_COLOR, progress);
+  selectedLocationLayer.setStyles({
+    [SELECTED_BLINK_STYLE_ID]: new TMap.LabelStyle({
+      color,
+      size: TEXTMARKSIZE * 1.5,
+      offset: { x: 0, y: 0 },
+      angle: 0,
+      alignment: "center",
+      verticalAlignment: "middle",
+    }),
+  });
+  setSelectedGeometry();
+}
+
+function advanceSelectedBlinkStyle() {
+  if (!selectedLocationLayer) return;
+  selectedBlinkProgress += selectedBlinkDirection * SELECTED_BLINK_STEP;
+  if (selectedBlinkProgress >= 1) {
+    selectedBlinkProgress = 1;
+    selectedBlinkDirection = -1;
+  } else if (selectedBlinkProgress <= 0) {
+    selectedBlinkProgress = 0;
+    selectedBlinkDirection = 1;
+  }
+  applySelectedBlinkStyle(selectedBlinkProgress);
+}
+
+function setSelectedGeometry(styleKey = SELECTED_BLINK_STYLE_ID) {
   if (!selectedLocationLayer || !selectedBlinkPosition) return;
   selectedLocationLayer.setGeometries([
     {
@@ -57,12 +123,12 @@ function startSelectedBlink(gcjLat, gcjLng, content) {
     clearInterval(selectedBlinkTimer);
     selectedBlinkTimer = null;
   }
-  selectedBlinkState = false;
-  setSelectedGeometry("selectedA");
+  selectedBlinkProgress = 0;
+  selectedBlinkDirection = 1;
+  applySelectedBlinkStyle(selectedBlinkProgress);
   selectedBlinkTimer = setInterval(() => {
-    selectedBlinkState = !selectedBlinkState;
-    setSelectedGeometry(selectedBlinkState ? "selectedB" : "selectedA");
-  }, 4000);
+    advanceSelectedBlinkStyle();
+  }, SELECTED_BLINK_INTERVAL_MS);
 }
 
 
@@ -807,18 +873,9 @@ lng: 121.47822413398089
     id: "selected-location-mark-layer",
     map: qqMap,
     styles: {
-      // Blink between white and black for high contrast
-      selectedA: new TMap.LabelStyle({
-        color: "#ffffff",
+      [SELECTED_BLINK_STYLE_ID]: new TMap.LabelStyle({
+        color: SELECTED_BLINK_START_COLOR,
         size: TEXTMARKSIZE * 1.5,
-        offset: { x: 0, y: 0 },
-        angle: 0,
-        alignment: "center",
-        verticalAlignment: "middle",
-      }),
-      selectedB: new TMap.LabelStyle({
-        color: "#000000",
-        size: TEXTMARKSIZE,
         offset: { x: 0, y: 0 },
         angle: 0,
         alignment: "center",
